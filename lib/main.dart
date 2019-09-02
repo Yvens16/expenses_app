@@ -111,15 +111,59 @@ class __MyHomePageState extends State<_MyHomePage> {
 
   bool _showChart = false;
 
-  @override
-  Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(
-        context); //Putting the MediaQuery in the object will avoid performance issue with the rendering of the object multiple times
-    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+  List<Widget> _buildPortraitMode(
+      MediaQueryData mediaQuery, PreferredSizeWidget appBar, Widget txList) {
+    return [
+      Container(
+          height: (mediaQuery.size.height -
+                  appBar.preferredSize.height -
+                  mediaQuery.padding.top) *
+              0.3,
+          child: Chart(_recentTransaction)),
+      txList,
+    ];
+  }
 
-    final PreferredSizeWidget appBar = Platform.isIOS
+  List<Widget> _buildLandscapeMode(
+      MediaQueryData mediaQuery, PreferredSizeWidget appBar, Widget txList) {
+    return [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            'Show chart',
+            style: Theme.of(context).textTheme.title,
+          ),
+          Switch.adaptive(
+            //certain widget can style with Ios or android look with the adaptive constructor
+            activeColor: Theme.of(context).accentColor,
+            value: _showChart,
+            onChanged: (val) {
+              //A switch button
+              setState(() {
+                _showChart = val;
+              });
+            },
+          ),
+        ],
+      ),
+      _showChart
+          ? Container(
+              height: (mediaQuery.size.height -
+                      appBar.preferredSize.height -
+                      mediaQuery.padding.top) *
+                  0.7,
+              child: Chart(_recentTransaction))
+          : txList
+    ];
+  }
+
+  Widget _buildAppBar() {
+    return Platform.isIOS
         ? CupertinoNavigationBar(
-            middle: Text('Personnal Expenses'),
+            middle: Text(
+              'Personal Expenses',
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -131,16 +175,25 @@ class __MyHomePageState extends State<_MyHomePage> {
             ),
           )
         : AppBar(
-            title: Text('Expenses App'),
+            title: Text(
+              'Personal Expenses',
+            ),
             actions: <Widget>[
               IconButton(
-                icon: Icon(
-                  Icons.add,
-                ),
+                icon: Icon(Icons.add),
                 onPressed: () => _startAddNewTransaction(context),
               ),
             ],
           );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(
+        context); //Putting the MediaQuery in the object will avoid performance issue with the rendering of the object multiple times
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+
+    final PreferredSizeWidget appBar = _buildAppBar();
 
     final txList = Container(
         height: (mediaQuery.size.height -
@@ -148,47 +201,16 @@ class __MyHomePageState extends State<_MyHomePage> {
                 mediaQuery.padding.top) *
             0.7,
         child: TransactionList(_userTransactions, _deleteTransaction));
-    final pageBody = SingleChildScrollView(
-      child: Column(
-        // mainAxisAlignment: MainAxisAlignment.spaceAround,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (isLandscape)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text('Show chart'),
-                Switch.adaptive(
-                  //certain widget can style with Ios or android look with the adaptive constructor
-                  activeColor: Theme.of(context).accentColor,
-                  value: _showChart,
-                  onChanged: (val) {
-                    //A switch button
-                    setState(() {
-                      _showChart = val;
-                    });
-                  },
-                ),
-              ],
-            ),
-          if (!isLandscape)
-            Container(
-                height: (mediaQuery.size.height -
-                        appBar.preferredSize.height -
-                        mediaQuery.padding.top) *
-                    0.3,
-                child: Chart(_recentTransaction)),
-          if (!isLandscape) txList,
-          if (isLandscape)
-            _showChart
-                ? Container(
-                    height: (mediaQuery.size.height -
-                            appBar.preferredSize.height -
-                            mediaQuery.padding.top) *
-                        0.7,
-                    child: Chart(_recentTransaction))
-                : txList,
-        ],
+    final pageBody = SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          // mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (isLandscape) ..._buildLandscapeMode(mediaQuery, appBar, txList),
+            if (!isLandscape) ..._buildPortraitMode(mediaQuery, appBar, txList),
+          ],
+        ),
       ),
     );
 
